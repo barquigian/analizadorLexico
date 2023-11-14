@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Analizador Léxico</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        h1 {
+            color: #2c3e50;
+        }
+
+        textarea {
+            width: 50%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+
+        button {
+            padding: 10px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        table {
+            width: 50%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Analizador Léxico</h1>
+    <textarea id="inputText" rows="10" cols="40"></textarea>
+    <button onclick="analizar()">Analizar</button>
+    <h2>Resultados:</h2>
+    <table id="outputTable">
+        <thead>
+            <th>Expresión Regular</th>
+            <th>Categoría</th>
+        </thead>
+        <tbody id="outputBody"></tbody>
+    </table>
+    <script>
+        const categorias = [
+            "Números Naturales",
+            "Números Reales",
+            "Identificadores",
+            "Palabras reservadas para enteros",
+            "Operadores aritméticos",
+            "Operadores de comparación",
+            "Operadores lógicos",
+            "Operadores de asignación",
+            "Operadores de incremento",
+            "Paréntesis",
+            "Llaves",
+            "Terminal",
+            "Separador",
+            "Hexadecimal",
+            "Cadenas de caracteres",
+            "Comentarios"
+        ];
+
+        const palabrasReservadasEnteros = ["int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64","int"];
+
+        const palabrasReservadasBucle = ["while", "for", "repeat", "loop", "until", "do", "case", "exit", "continue"];
+        const palabrasReservadasDecision = ["if", "the", "else", "case", "select"];
+        const palabrasReservadasClase = ["clase"];
+        const palabrasReservadasReales = ["single", "double", "extended", "complex", "single-precision", "double-presicion", "extended-precision"];
+        const palabrasReservadasCadenas = ["string", "path", "filename", "pattern", "text", "file", "directory", "msg", "message"];
+
+        const operadoresAritmeticos = ["-", "*", "/", "%"];
+        const operadoresComparacion = /[=.<>]+/;
+        const operadoresLogicos = ["and", "or", "xor", "not", "nand", "nor", "xnor"];
+        const simbolosAbrir = ["(", "["];
+        const simbolosCerrar = [")","]","}"];
+        const separadoresSentencias = [";", ","];
+        const operadoresAsignacion = ["=", ":=", "-="];
+       
+       
+        function analizar() {
+            const inputText = document.getElementById("inputText").value;
+            const outputBody = document.getElementById("outputBody");
+
+            if (inputText) {
+                const tokens = inputText.match(/(\d+\.?\d*|[a-zA-Z]+|[^\w\s])/g) || [];
+
+                const resultados = tokens.map(token => {
+                    const categoria = determinarCategoria(token);
+                    return `<tr><td>${token}</td><td>${categoria}</td></tr>`;
+                });
+
+                outputBody.innerHTML = resultados.join('');
+            } else {
+                outputBody.innerHTML = '<tr><td colspan="2">Ingresa un texto para analizar.</td></tr>';
+            }
+        }
+          function esNumero(char) {
+            return /\d/.test(char[0]);
+        }
+
+        function esLetra(char) {
+            return /[a-zA-Z]/.test(char[0]);
+        }
+
+        function determinarCategoria(token) {
+            if (compararIdentificadores(token)) {
+                return 'Identificador';
+            } else if (buscarPalabrasReservadasEnTexto(token, palabrasReservadasEnteros)) {
+                return 'Palabras Reservadas enteros';
+            } else if (compararOperadoresAritmeticos(token)) {
+                return 'Operadores Aritméticos';
+            } else if (compararOperadoresDeComparacion(token)) {
+                return 'Operadores de Comparación';
+            } else if (compararOperadoresLogicos(token)) {
+                return 'Operadores Lógicos';
+            } else if (esSimboloDeAbrir(token)) {
+                return 'Símbolos de abrir';
+            } else if (esSimboloDeCerrar(token)) {
+                return 'Símbolos de cerrar';
+            } else if (esSeparadorDeSentencias(token)) {
+                return 'Separadores de sentencias';
+            } else if (buscarPalabrasReservadasEnTexto(token, palabrasReservadasBucle)) {
+                return 'Palabra reservada para bucle o ciclo';
+            } else if (buscarPalabrasReservadasEnTexto(token, palabrasReservadasDecision)) {
+                return 'Palabra para decisión';
+            } else if (esPalabraParaClase(token)) {
+                return 'Palabra para la clase';
+            } else if (esOperadorDeAsignacion(token)) {
+                return 'Operador(es) de asignación';
+            } else if (esIdentificadorDeVariable(token)) {
+                return 'Identificador de variable';
+            } else if (esCaracter(token)) {
+                return 'Caracteres';
+            } else if (buscarPalabrasReservadasEnTexto(token, palabrasReservadasReales)) {
+                return 'Palabra para los reales';
+            } else if (buscarPalabrasReservadasEnTexto(token, palabrasReservadasCadenas)) {
+                return 'Palabra para cadenas de caracteres';
+            } else {
+                return 'No reconocido';
+            }
+        }
+
+        function compararIdentificadores(argumento) {
+            const argumentoMinusculas = argumento.toLowerCase();
+            const categoriasMinusculas = categorias.map(categoria => categoria.toLowerCase());
+            return categoriasMinusculas.includes(argumentoMinusculas);
+        }
+
+        function buscarPalabrasReservadasEnTexto(texto, palabrasReservadas) {
+            const textoMinusculas = texto.toLowerCase();
+
+            return palabrasReservadas.some(palabra => {
+                const palabraMinusculas = palabra.toLowerCase();
+                return textoMinusculas.includes(palabraMinusculas);
+            });
+        }
+
+        function compararOperadoresAritmeticos(variable) {
+            return operadoresAritmeticos.includes(variable);
+        }
+
+        function compararOperadoresDeComparacion(variable) {
+            return operadoresComparacion.test(variable);
+        }
+
+        function compararOperadoresLogicos(variable) {
+            return operadoresLogicos.includes(variable);
+        }
+
+        function esSimboloDeAbrir(token) {
+            return simbolosAbrir.includes(token);
+        }
+
+        function esSimboloDeCerrar(token) {
+            return simbolosCerrar.includes(token);
+        }
+
+        function esSeparadorDeSentencias(token) {
+            return separadoresSentencias.includes(token);
+        }
+
+        function esOperadorDeAsignacion(token) {
+            return operadoresAsignacion.includes(token);
+        }
+
+        function esIdentificadorDeVariable(token) {
+            return token.length === 1 && /[L_D]/.test(token);
+        }
+
+        function esCaracter(token) {
+            return token.length === 1 && /['"CS"]/.test(token);
+        }
+
+        function esPalabraParaClase(token) {
+            return palabrasReservadasClase.includes(token.toLowerCase());
+        }
+    </script>
+       
+        
+
+</body>
+
+</html>
